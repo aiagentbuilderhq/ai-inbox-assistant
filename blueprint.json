@@ -1,0 +1,11 @@
+{
+  "name": "AI Inbox Assistant \u2014 Gmail + Gemini + MCP + Confidence Gate",
+  "description": "Gmail API \u2192 Sheets API (RAG-lite knowledge base) \u2192 Gemini API (MCP) \u2192 Router: Confidence Gate \u2192 Gmail Draft or Telegram Escalation",
+  "modules": [
+    "Gmail: Watch Emails (Gmail API)",
+    "Google Sheets: Get Knowledge Base (Sheets API - RAG-lite)",
+    "Gemini: Generate Text (Gemini API + MCP + LangChain)",
+    "Router: Confidence \u226580% \u2192 Gmail Draft, <80% \u2192 Telegram Alert"
+  ],
+  "note": "Knowledge base: 10 Q&As in Google Sheet. Prompt: 'You are support for [Company]. Knowledge: [KB]. Answer email: {{text}}. If not in KB, say EXACTLY: ESCALATE. Output: ANSWER: [text] | CONFIDENCE: [%]'"
+}
