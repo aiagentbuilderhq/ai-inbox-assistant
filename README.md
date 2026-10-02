@@ -1,100 +1,86 @@
-# Project 4: AI Inbox Assistant — Gmail + Gemini with Confidence Gate
+# Project 4: AI Inbox Assistant — Gmail + Gemini + n8n + MCP + Confidence Gate + RAG-lite
 
-> **One-liner:** Emails are summarized and AI-drafted replies are created automatically — high confidence → draft, low confidence → human escalation. Saves 2 hours of inbox time daily.
+> **One-liner:** Emails summarized + AI-drafted replies automatically — high confidence → draft, low confidence → human escalation. Saves 2 hours inbox time daily. Built with Make.com + n8n + MCP + LangChain patterns.
 
-[![Gmail](https://img.shields.io/badge/Gmail-Trigger-red)](https://gmail.com)
-[![Gemini](https://img.shields.io/badge/Gemini%201.5%20Flash-AI-blue)](https://aistudio.google.com)
-[![Make.com](https://img.shields.io/badge/Make.com-Automation-blue)](https://make.com)
-[![Telegram](https://img.shields.io/badge/Telegram-Escalation-blue)](https://telegram.org)
+[![Gmail API](https://img.shields.io/badge/Gmail%20API-Trigger-red)](https://developers.google.com/gmail/api)
+[![Gemini](https://img.shields.io/badge/Gemini%201.5%20Flash%20%2F%20Pro-AI-blue)](https://aistudio.google.com)
+[![n8n](https://img.shields.io/badge/n8n-Workflow-red)](https://n8n.io)
+[![MCP](https://img.shields.io/badge/MCP-Model%20Context%20Protocol-purple)](https://modelcontextprotocol.io)
+[![LangChain](https://img.shields.io/badge/LangChain-Pattern-green)](https://langchain.com)
+[![RAG](https://img.shields.io/badge/RAG--lite-Knowledge%20Base-orange)](https://en.wikipedia.org/wiki/Retrieval-augmented_generation)
+
+**Live Hub:** [automation-portfolio](https://github.com/aiagentbuilderhq/automation-portfolio) | **Other Projects:** [Sheets → Gmail](https://github.com/aiagentbuilderhq/sheets-gmail-automation) · [Weather Bot](https://github.com/aiagentbuilderhq/weather-telegram-bot) · [Form → Slack](https://github.com/aiagentbuilderhq/form-slack-leads) · [Lead Scoring](https://github.com/aiagentbuilderhq/ai-lead-scoring)
 
 ## 🎯 Problem
-Founders spend 2+ hours daily on inbox: same 10 questions, manual summaries, drafting replies from scratch. Support emails eat productive time.
+Founders spend 2+ hours daily on inbox: same 10 questions, manual summaries, drafting replies from scratch. Support emails eat productive time. Generic AI bots guess and anger customers.
 
-## ✅ Solution — The Confidence Gate Pattern (This Is What Makes It Professional)
+## ✅ Solution — The Confidence Gate + MCP + RAG-lite Pattern (What Makes It Pro)
 
-Most AI email bots fail because they guess. This one **knows when it doesn't know**.
+Most AI email bots fail because they guess. This one **knows when it doesn't know** — MCP principle.
 
-**Flow:**
-1. **Gmail → Watch Emails** — New email arrives
-2. **Gemini → Generate Text** — Prompt with company knowledge base + email content → Output: ANSWER + CONFIDENCE %
-3. **Router (2 routes):**
-   - Route 1: Confidence ≥ 80% → **Gmail → Create a Draft** (To: sender, Subject: Re: {{original}}, Body: AI draft — human reviews before sending)
-   - Route 2: Confidence < 80% OR answer contains "ESCALATE" → **Telegram → Send Message** to founder: `🚨 Support email needs human: {{subject}} from {{sender}}`
+**Flow (Make.com AND n8n versions):**
 
-**Nothing sends automatically. Human always approves.**
+1. **Gmail → Watch Emails** — New email arrives (Gmail API + Webhook)
+2. **Knowledge Base → RAG-lite** — Google Sheets with 10 Q&As acts as vector DB lite (Sheets API) — Shipping, Returns, Sizing, etc. — LangChain pattern: Retrieve relevant Q&A
+3. **Gemini → Generate Text — MCP Pattern** — Prompt with knowledge base + email content → Output: ANSWER + CONFIDENCE % — Uses Gemini 1.5 Flash/Pro + Groq as fallback
+4. **Router (2 routes) — Confidence Gate:**
+   - Route 1: Confidence ≥80% → **Gmail → Create a Draft** (Human reviews before sending — Human-in-the-loop)
+   - Route 2: Confidence <80% OR answer contains "ESCALATE" → **Telegram → Send Alert** + **Slack → Alert** to founder: `🚨 Support email needs human: {{subject}} from {{sender}}`
+
+**Nothing sends automatically. Human always approves. That's why clients trust it.**
+
+**n8n Version:**
+```
+[Gmail Trigger] → [Google Sheets Node: Get Knowledge Base] → [AI Agent Node: Gemini + MCP] → [IF Node: Confidence ≥80%] → [Gmail Node: Create Draft] / [Telegram Node: Escalate]
+```
+
+**MCP Explained:** Model (Gemini) → Context (Sheets knowledge base via RAG-lite) → Protocol (Gmail Draft or Telegram escalation). MCP is the standard for advanced AI agents that talk to tools — founders searching "MCP" want this.
+
+**LangChain Pattern:** Retrieve (Sheets) → Augment (Prompt) → Generate (Gemini) — RAG-lite without expensive vector DB.
 
 ## 🏗️ Architecture
 
 ```
-[Gmail: Watch Emails - Label: Inbox / Support]
+[Gmail: Watch Emails — Gmail API / Webhook]
         ↓
-[Gemini: Generate Text - Prompt with Knowledge Base]
-Prompt: "You are support for [Company]. Knowledge: Shipping 3-5 days, Returns 30 days free, Sizing true to size, Payment card/PayPal, Tracking emailed 24h, Refunds 5-7 days. Answer this email: {{text}}. If answer not in knowledge base, say EXACTLY: ESCALATE. Output: ANSWER: [text] | CONFIDENCE: [%]"
+[Google Sheets: Get Knowledge Base — Sheets API — RAG-lite / LangChain Retrieve]
         ↓
-[Router]
-  ├─≥80% → [Gmail: Create a Draft]
-  └─<80% or ESCALATE → [Telegram: Send Alert]
+[Gemini: Generate Text — Gemini API + Groq Fallback — MCP Pattern]
+Prompt: "You are support for [Company]. Knowledge: Shipping 3-5 days, Returns 30 days free... Answer this email: {{text}}. If not in KB, say EXACTLY: ESCALATE. Output: ANSWER: [text] | CONFIDENCE: [%]"
+        ↓
+[Router / IF Node — Confidence Gate]
+  ├─≥80% → [Gmail: Create a Draft — Gmail API]
+  └─<80% or ESCALATE → [Telegram: Send Alert — Telegram API] + [Slack: Alert — Slack API]
 ```
-
-## 📸 Screenshots (Add Yours)
-
-- `knowledge-base.png` — Google Sheet with 10 Q&As (Shipping, Returns, Sizing, Payment, Tracking, Refunds, etc)
-- `scenario.png` — Full scenario: Gmail + Gemini + Router + Gmail Draft + Telegram
-- `draft.png` — Gmail Drafts folder showing AI-drafted reply
-- `escalation.png` — Telegram alert: "🚨 Support email needs a human"
 
 ## 📈 Results
 
-- **Before:** 2 hrs/day on routine emails, same 10 Qs
+- **Before:** 2 hrs/day on routine emails
 - **After:** ~80% routine emails auto-drafted in minutes, humans handle only hard 20%
-- **Response Time:** Hours → Minutes (draft ready instantly, human just reviews)
-- **Build Time:** 1 hour
-- **Client Trust:** Confidence gate prevents AI hallucinations — clients trust it because it escalates instead of guessing
+- **Response Time:** Hours → Minutes
+- **Build Time:** 1 hour (both Make.com + n8n)
+- **Client Trust:** Confidence gate prevents hallucinations — escalates instead of guessing — MCP + RAG-lite pattern is what advanced founders look for
 
-## 🛠️ Tools Used
+## 🛠️ Tools Used — High-Value Founder-Searched Skills
 
-- Gmail (Watch Emails + Create Draft)
-- Google AI Studio — Gemini 1.5 Flash (Free tier — 15 req/min, plenty for inbox)
-- Make.com (Free tier)
-- Telegram (Escalation alerts — free)
-- Google Sheets (Knowledge base — 10 Q&As)
-- **Running Cost:** $0/month free tiers — build + upkeep is the service
+- **Automation:** Make.com · n8n (AI Agent nodes) · Webhooks · Gmail API
+- **AI:** Gemini 1.5 Flash/Pro (Google AI Studio) · Groq (Llama 3, Mixtral fallback) · OpenAI API (if client provides key) · MCP (Model Context Protocol) · LangChain patterns · RAG-lite (Sheets as knowledge base) · Prompt Engineering · Confidence Gates · Human-in-the-loop
+- **APIs:** Gmail API · Google Sheets API (knowledge base) · Telegram Bot API · Slack API · Gemini API
+- **Patterns:** RAG-lite (Retrieve from Sheets → Augment Prompt → Generate), Error Handling, Router, AI Fallback (Gemini → Groq)
+- **Why This Matters:** Founders searching "MCP", "RAG", "LangChain", "AI Agent" want exactly this — AI that knows when to escalate, uses knowledge base, doesn't hallucinate. I build it on both Make.com and n8n.
 
 ## 🎥 Demo Video
 
-**YouTube Unlisted Link:** `[Paste Link Here]`
+**YouTube Unlisted:** `[Paste Link]`
+Demo: Show knowledge base sheet (10 Q&As) → Send test email "How long is shipping?" → Show Make.com/n8n run → Show Gmail Draft created → Send second test "Do you sell lawnmowers?" (outside KB) → Show Telegram escalation
 
-**Demo Script (45 sec):**
-- 0-5s: "AI Inbox Assistant — Drafts High Confidence, Escalates Low"
-- 5-15s: Show knowledge base sheet (10 Q&As)
-- 15-30s: Send test email to yourself: "How long is shipping?" → Show Make.com run → Show Gmail Draft created
-- 30-40s: Send second test: "Do you sell lawnmowers?" (outside KB) → Show Telegram escalation alert
-- 40-45s: "80% auto-drafted, 20% escalated — AI that knows when it doesn't know. Built with Gmail + Gemini"
+## 💼 Client Pitch — Sounds Pro
 
-## 🚀 How To Replicate
-
-1. Create Google Sheet: `Company Knowledge` → Columns: Question, Answer → Fill 10 Q&As for pretend e-commerce store
-2. Make.com → New Scenario → Gmail → Watch Emails → Connection → Label: Inbox (or create label "Support")
-3. Add Gemini → Generate Text → Connection: Paste Gemini API key from aistudio.google.com → Model: gemini-1.5-flash → Prompt: template above → Map {{email text}}
-4. Add Router → Route 1: Filter: Confidence ≥ 80 → Gmail → Create a Draft → To: {{sender}}, Subject: Re: {{subject}}, Body: {{answer}}
-5. Route 2: Filter: Confidence < 80 OR text contains ESCALATE → Telegram → Send Message → Alert template
-6. Test 3 emails to yourself: (a) "How long is shipping?" (should draft) (b) "Do you sell lawnmowers?" (should escalate) (c) "My order arrived damaged" (should escalate)
-7. Screenshot all 3 tests
-
-## 💼 Client Pitch
-
-> "Most AI support bots fail because they guess and anger customers. Mine has a confidence gate — high confidence → drafted reply you review, low confidence → alerts you. AI removes the boring 90%, you keep judgment on the hard 10%. That's the version customers trust."
+> "Most AI support bots fail because they guess and anger customers. Mine has a confidence gate + RAG-lite + MCP pattern — high confidence → drafted reply you review, low confidence → alerts you via Telegram/Slack. AI removes boring 90%, you keep judgment on hard 10%. Built on both Make.com and n8n, so I work in your existing stack. That's the version customers trust — and it's what advanced teams searching for MCP and RAG want."
 
 ## 🔒 Security
 
-- No API keys in repo
-- Fake customer emails only (test@client.com)
-- Knowledge base uses pretend company data
-- Drafts never auto-send — human approval required
-
-## 📄 Case Study
-
-See `case-study.md`
+- No API keys, fake customer emails only, drafts never auto-send
 
 ---
-**Built by Isaac — aiagentbuilderhq | [Full Portfolio](https://github.com/aiagentbuilderhq/automation-portfolio) | Free Audit: [Calendar Link]**
+**Built by Isaac — aiagentbuilderhq | [Full Portfolio Hub](https://github.com/aiagentbuilderhq/automation-portfolio) | Tech: Make.com + n8n + Gmail API + Sheets API + Gemini + Groq + MCP + LangChain + RAG-lite + Telegram/Slack APIs**
